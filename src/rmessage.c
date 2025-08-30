@@ -367,6 +367,11 @@ pbc_rmessage_string(struct pbc_rmessage * m , const char *key , int index, int *
 	return var->s.str;
 }
 
+bool
+pbc_rmessage_has(struct pbc_rmessage * m, const char *key) {
+	return _pbcM_sp_query(m->index,key) != NULL;
+}
+
 uint32_t 
 pbc_rmessage_integer(struct pbc_rmessage *m , const char *key , int index, uint32_t *hi) {
 	struct value * v = (struct value *)_pbcM_sp_query(m->index,key);

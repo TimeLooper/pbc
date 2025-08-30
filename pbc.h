@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #define PBC_ARRAY_CAP 64
 
@@ -65,6 +66,7 @@ int pbc_decode(struct pbc_env * env, const char * type_name , struct pbc_slice *
 struct pbc_rmessage * pbc_rmessage_new(struct pbc_env * env, const char * type_name , struct pbc_slice * slice);
 void pbc_rmessage_delete(struct pbc_rmessage *);
 
+bool pbc_rmessage_has(struct pbc_rmessage * , const char *key);
 uint32_t pbc_rmessage_integer(struct pbc_rmessage * , const char *key , int index, uint32_t *hi);
 double pbc_rmessage_real(struct pbc_rmessage * , const char *key , int index);
 const char * pbc_rmessage_string(struct pbc_rmessage * , const char *key , int index, int *sz);
