@@ -34,6 +34,7 @@ struct _field {
 };
 
 struct _message {
+	bool map_entry;
 	const char * key;
 	struct map_ip * id;	// id -> _field
 	struct map_sp * name;	// string -> _field

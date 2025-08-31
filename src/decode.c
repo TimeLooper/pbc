@@ -22,28 +22,28 @@ static const char * TYPENAME[] = {
 };
 
 static int
-call_unknown(pbc_decoder f, void * ud, int id, struct atom *a, uint8_t * start) {
+call_unknown(struct pbc_env * env, pbc_decoder f, void * ud, int id, struct atom *a, uint8_t * start) {
 	union pbc_value v;
 	switch (a->wire_id & 7) {
 	case WT_VARINT:
 		v.i.low = a->v.i.low;
 		v.i.hi = a->v.i.hi;
-		f(ud, PBC_INT, TYPENAME[PBC_INT], &v, id , NULL);
+		f(env, ud, PBC_INT, TYPENAME[PBC_INT], &v, id , NULL);
 		break;
 	case WT_BIT64:
 		v.i.low = a->v.i.low;
 		v.i.hi = a->v.i.hi;
-		f(ud, PBC_FIXED64, TYPENAME[PBC_FIXED64], &v, id , NULL);
+		f(env, ud, PBC_FIXED64, TYPENAME[PBC_FIXED64], &v, id , NULL);
 		break;
 	case WT_LEND:
 		v.s.buffer = (char*)start + a->v.s.start;
 		v.s.len = a->v.s.end - a->v.s.start;
-		f(ud, PBC_BYTES, TYPENAME[PBC_BYTES], &v, id , NULL);
+		f(env, ud, PBC_BYTES, TYPENAME[PBC_BYTES], &v, id , NULL);
 		break;
 	case WT_BIT32:
 		v.i.low = a->v.i.low;
 		v.i.hi = 0;
-		f(ud, PBC_FIXED32, TYPENAME[PBC_FIXED32], &v, id , NULL);
+		f(env, ud, PBC_FIXED32, TYPENAME[PBC_FIXED32], &v, id , NULL);
 		break;
 	default:
 		return 1;
@@ -52,7 +52,7 @@ call_unknown(pbc_decoder f, void * ud, int id, struct atom *a, uint8_t * start) 
 }
 
 static int
-call_type(pbc_decoder pd, void * ud, struct _field *f, struct atom *a, uint8_t * start) {
+call_type(struct pbc_env * env, pbc_decoder pd, void * ud, struct _field *f, struct atom *a, uint8_t * start) {
 	union pbc_value v;
 	const char * type_name = NULL;
 	int type = _pbcP_type(f, &type_name);
@@ -122,12 +122,11 @@ call_type(pbc_decoder pd, void * ud, struct _field *f, struct atom *a, uint8_t *
 		assert(0);
 		break;
 	}
-	pd(ud, type, type_name, &v, f->id, f->name);
-	return 0;
+	return pd(env, ud, type, type_name, &v, f->id, f->name);
 }
 
 static int
-call_array(pbc_decoder pd, void * ud, struct _field *f, uint8_t * buffer , int size) {
+call_array(struct pbc_env * env, pbc_decoder pd, void * ud, struct _field *f, uint8_t * buffer , int size) {
 	union pbc_value v;
 	const char * type_name = NULL;
 	int type = _pbcP_type(f, &type_name);
@@ -156,7 +155,7 @@ call_array(pbc_decoder pd, void * ud, struct _field *f, uint8_t * buffer , int s
 					(uint64_t)buffer[i+6] << 48 |
 					(uint64_t)buffer[i+7] << 56;
 				v.f = u.d;
-				pd(ud, type , type_name, &v, f->id, f->name);
+				pd(env, ud, type , type_name, &v, f->id, f->name);
 			}
 			return size/8;
 		case PTYPE_FLOAT:
@@ -172,7 +171,7 @@ call_array(pbc_decoder pd, void * ud, struct _field *f, uint8_t * buffer , int s
 					(uint32_t)buffer[i+2] << 16 |
 					(uint32_t)buffer[i+3] << 24;
 				v.f = (double)u.f;
-				pd(ud, type , type_name, &v, f->id, f->name);
+				pd(env, ud, type , type_name, &v, f->id, f->name);
 			}
 			return size/4;
 		case PTYPE_FIXED32:
@@ -184,7 +183,7 @@ call_array(pbc_decoder pd, void * ud, struct _field *f, uint8_t * buffer , int s
 					(uint32_t)buffer[i+1] << 8 |
 					(uint32_t)buffer[i+2] << 16 |
 					(uint32_t)buffer[i+3] << 24;
-				pd(ud, type , type_name, &v, f->id, f->name);
+				pd(env, ud, type , type_name, &v, f->id, f->name);
 			}
 			return size/4;
 		case PTYPE_FIXED64:
@@ -200,7 +199,7 @@ call_array(pbc_decoder pd, void * ud, struct _field *f, uint8_t * buffer , int s
 					(uint32_t)buffer[i+5] << 8 |
 					(uint32_t)buffer[i+6] << 16 |
 					(uint32_t)buffer[i+7] << 24;
-				pd(ud, type , type_name, &v, f->id, f->name);
+				pd(env, ud, type , type_name, &v, f->id, f->name);
 			}
 			return size/8;
 		case PTYPE_INT64:
@@ -220,7 +219,7 @@ call_array(pbc_decoder pd, void * ud, struct _field *f, uint8_t * buffer , int s
 					if (len > size)
 						return -1;
 				}
-				pd(ud, type , type_name, &v, f->id, f->name);
+				pd(env, ud, type , type_name, &v, f->id, f->name);
 				buffer += len;
 				size -= len;
 				++n;
@@ -234,15 +233,15 @@ call_array(pbc_decoder pd, void * ud, struct _field *f, uint8_t * buffer , int s
 				if (size >= 10) {
 					len = _pbcV_decode(buffer, (struct longlong *)&(v.i));
 				} else {
-					uint8_t temp[10];
-					memcpy(temp, buffer, size);
+					// uint8_t temp[10];
+					// memcpy(temp, buffer, size);
 					len = _pbcV_decode(buffer, (struct longlong *)&(v.i));
 					if (len > size)
 						return -1;
 				}
 				v.e.id = v.i.low;
 				v.e.name = (const char *)_pbcM_ip_query(f->type_name.e->id , v.i.low);
-				pd(ud, type , type_name, &v, f->id, f->name);
+				pd(env, ud, type , type_name, &v, f->id, f->name);
 				buffer += len;
 				size -= len;
 				++n;
@@ -257,14 +256,14 @@ call_array(pbc_decoder pd, void * ud, struct _field *f, uint8_t * buffer , int s
 					len = _pbcV_decode(buffer, (struct longlong *)&(v.i));
 					_pbcV_dezigzag32((struct longlong *)&(v.i));
 				} else {
-					uint8_t temp[10];
-					memcpy(temp, buffer, size);
+					// uint8_t temp[10];
+					// memcpy(temp, buffer, size);
 					len = _pbcV_decode(buffer, (struct longlong *)&(v.i));
 					if (len > size)
 						return -1;
 					_pbcV_dezigzag32((struct longlong *)&(v.i));
 				}
-				pd(ud, type , type_name, &v, f->id, f->name);
+				pd(env, ud, type , type_name, &v, f->id, f->name);
 				buffer += len;
 				size -= len;
 				++n;
@@ -279,14 +278,14 @@ call_array(pbc_decoder pd, void * ud, struct _field *f, uint8_t * buffer , int s
 					len = _pbcV_decode(buffer, (struct longlong *)&(v.i));
 					_pbcV_dezigzag64((struct longlong *)&(v.i));
 				} else {
-					uint8_t temp[10];
-					memcpy(temp, buffer, size);
+					// uint8_t temp[10];
+					// memcpy(temp, buffer, size);
 					len = _pbcV_decode(buffer, (struct longlong *)&(v.i));
 					if (len > size)
 						return -1;
 					_pbcV_dezigzag64((struct longlong *)&(v.i));
 				}
-				pd(ud, type , type_name, &v, f->id, f->name);
+				pd(env, ud, type , type_name, &v, f->id, f->name);
 				buffer += len;
 				size -= len;
 				++n;
@@ -323,20 +322,20 @@ pbc_decode(struct pbc_env * env, const char * type_name , struct pbc_slice * sli
 		int id = ctx->a[i].wire_id >> 3;
 		struct _field * f = (struct _field *)_pbcM_ip_query(msg->id , id);
 		if (f==NULL) {
-			int err = call_unknown(pd,ud,id,&ctx->a[i],start);
+			int err = call_unknown(env,pd,ud,id,&ctx->a[i],start);
 			if (err) {
 				_pbcC_close(_ctx);
 				return -i-1;
 			}
 		} else if (f->label == LABEL_PACKED) {
 			struct atom * a = &ctx->a[i];
-			int n = call_array(pd, ud, f , start + a->v.s.start , a->v.s.end - a->v.s.start);
+			int n = call_array(env, pd, ud, f , start + a->v.s.start , a->v.s.end - a->v.s.start);
 			if (n < 0) {
 				_pbcC_close(_ctx);
 				return -i-1;
 			}
 		} else {
-			if (call_type(pd,ud,f,&ctx->a[i],start) != 0) {
+			if (call_type(env,pd,ud,f,&ctx->a[i],start) != 0) {
 				_pbcC_close(_ctx);
 				return -i-1;
 			}
@@ -345,5 +344,90 @@ pbc_decode(struct pbc_env * env, const char * type_name , struct pbc_slice * sli
 
 	_pbcC_close(_ctx);
 	return ctx->number;
+}
+
+int
+pbc_decode_map_entry(struct pbc_env * env, const char * type_name , struct pbc_slice * slice, pbc_decoder pd, void *ud) {
+	struct _message * msg = _pbcP_get_message(env, type_name);
+	if (msg == NULL) {
+		env->lasterror = "Proto not found";
+		return -1;
+	}
+	pbc_ctx _ctx;
+	int count = _pbcC_open(_ctx,slice->buffer,slice->len);
+	if (count <= 0 && slice->len > 0) {
+		env->lasterror = "decode context error";
+		_pbcC_close(_ctx);
+		return count - 1;
+	}
+	struct context * ctx = (struct context *)_ctx;
+	uint8_t * start = (uint8_t *)slice->buffer;
+
+	int i;
+	int keyFieldIndex = -1;
+	int valueFieldIndex = -1;
+	for (i=0;i<ctx->number;i++) {
+		int id = ctx->a[i].wire_id >> 3;
+		struct _field * f = (struct _field *)_pbcM_ip_query(msg->id , id);
+		if (strcmp(f->name, "key") == 0) {
+			keyFieldIndex = i;
+		}
+		if (strcmp(f->name, "value") == 0) {
+			valueFieldIndex = i;
+		}
+	}
+
+	struct _field* keyField =  _pbcM_sp_query(msg->name, "key");
+	struct _field* valueField = _pbcM_sp_query(msg->name, "value");
+
+	if (keyField == NULL || valueField == NULL) {
+		env->lasterror = "map field not found";
+		_pbcC_close(_ctx);
+		return -1;
+	}
+
+	int ret = 0;
+	if (valueFieldIndex < 0) {
+		// default value
+		const char* type_name = NULL;
+		int type = _pbcP_type(valueField, &type_name);
+		assert(type != 0);
+		if (type_name == NULL) {
+			type_name = TYPENAME[type & ~PBC_REPEATED];
+		}
+		union pbc_value v;
+		memcpy(&v, valueField->default_v, sizeof(v));
+		ret = pd(env, ud, type, type_name, &v, valueField->id, valueField->name);
+	} else {
+		if (call_type(env,pd,ud,valueField,&ctx->a[valueFieldIndex],start) != 0) {
+			_pbcC_close(_ctx);
+			return -i-1;
+		}
+	}
+
+	if (ret != 0) {
+		return ret;
+	}
+
+	if (keyFieldIndex < 0) {
+		// default value
+		const char* type_name = NULL;
+		int type = _pbcP_type(keyField, &type_name);
+		assert(type != 0);
+		if (type_name == NULL) {
+			type_name = TYPENAME[type & ~PBC_REPEATED];
+		}
+		union pbc_value v;
+		memcpy(&v, valueField->default_v, sizeof(v));
+		ret = pd(env, ud, type, type_name, &v, keyField->id, keyField->name);
+	} else {
+		if (call_type(env,pd,ud,keyField,&ctx->a[keyFieldIndex],start) != 0) {
+			_pbcC_close(_ctx);
+			return -i-1;
+		}
+	}
+
+	_pbcC_close(_ctx);
+	return ret;
 }
 

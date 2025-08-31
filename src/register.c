@@ -209,6 +209,50 @@ _register_extension(struct pbc_env *p, struct _stringpool *pool , const char * p
 }
 
 static void
+_init_map_entry_message(struct pbc_rmessage * message_type, struct _message * m, int field_count) {
+	m->map_entry = false;
+	if (field_count != 2) {
+		return;
+	}
+	struct _field* key = _pbcM_sp_query(m->name, "key");
+	if (!key) {
+		return;
+	}
+	int key_state = 0;
+	switch(key->type) {
+		case PTYPE_INT64:
+		case PTYPE_SINT64:
+		case PTYPE_INT32:
+		case PTYPE_SINT32:
+		case PTYPE_UINT32:
+		case PTYPE_UINT64:
+		case PTYPE_FIXED32:
+		case PTYPE_SFIXED32:
+		case PTYPE_SFIXED64:
+		case PTYPE_FIXED64:
+		case PTYPE_BOOL:
+		case PTYPE_STRING:
+			if (key->label != LABEL_REPEATED && key->label != LABEL_PACKED) {
+				key_state = 1;
+			}
+			break;
+		default:
+			break;
+	}
+	if (key_state == 0) {
+		return;
+	}
+	struct _field* value = _pbcM_sp_query(m->name, "value");
+	if (!value) {
+		return;
+	}
+	struct pbc_rmessage* options = pbc_rmessage_message(message_type, "options", 0);
+	if (options) {
+		m->map_entry = pbc_rmessage_integer(options, "map_entry", 0, NULL) != 0;
+	}
+}
+
+static void
 _register_message(struct pbc_env *p, struct _stringpool *pool, struct pbc_rmessage * message_type, const char *prefix, int prefix_sz, struct pbc_rmessage * file, pbc_array queue) {
 	int name_sz;
 	const char * name = pbc_rmessage_string(message_type, "name", 0 , &name_sz);
@@ -229,7 +273,9 @@ _register_message(struct pbc_env *p, struct _stringpool *pool, struct pbc_rmessa
 		_pbcP_push_message(p, temp , &f , queue);
 	}
 
-	_pbcP_init_message(p, temp);
+	struct _message* m = _pbcP_init_message(p, temp);
+
+	_init_map_entry_message(message_type, m, field_count);
 
 	_register_extension(p, pool, temp, sz,message_type, queue, file);
 

@@ -19,7 +19,8 @@
 #define PBC_BYTES 9
 #define PBC_INT64 10
 #define PBC_UINT 11
-#define PBC_UNKNOWN 12
+#define PBC_MAP 12
+#define PBC_UNKNOWN 13
 #define PBC_REPEATED 128
 
 #ifdef __cplusplus
@@ -58,8 +59,9 @@ union pbc_value {
 	} e;
 };
 
-typedef void (*pbc_decoder)(void *ud, int type, const char * type_name, union pbc_value *v, int id, const char *key);
+typedef int (*pbc_decoder)(struct pbc_env* env, void *ud, int type, const char * type_name, union pbc_value *v, int id, const char *key);
 int pbc_decode(struct pbc_env * env, const char * type_name , struct pbc_slice * slice, pbc_decoder f, void *ud);
+int pbc_decode_map_entry(struct pbc_env * env, const char * type_name , struct pbc_slice * slice, pbc_decoder f, void *ud);
 
 // message api
 

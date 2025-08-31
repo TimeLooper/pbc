@@ -94,6 +94,7 @@ _pbcP_push_message(struct pbc_env * p, const char *name, struct _field *f , pbc_
 	struct _message * m = (struct _message *)_pbcM_sp_query(p->msgs, name);
 	if (m==NULL) {
 		m = (struct _message *)malloc(sizeof(*m));
+		m->map_entry = false;
 		m->def = NULL;
 		m->key = name;
 		m->id = NULL;
@@ -223,6 +224,9 @@ _pbcP_type(struct _field * field, const char ** type) {
 		break;
 	case PTYPE_MESSAGE:
 		ret = PBC_MESSAGE;
+		if (field->type_name.m->map_entry) {
+			ret = PBC_MAP;
+		}
 		if (type) {
 			*type = field->type_name.m->key;
 		}
@@ -234,7 +238,6 @@ _pbcP_type(struct _field * field, const char ** type) {
 		field->label == LABEL_PACKED) {
 		ret |= PBC_REPEATED;
 	}
-
 	return ret;
 }
 
