@@ -118,6 +118,24 @@ function _reader:message_repeated(key, message_type)
 	return ret
 end
 
+function _reader:message_map(key, message_type)
+	local cobj = self._CObj
+	local n = c._rmessage_size(cobj , key)
+	local ret = {}
+	for i=0,n-1 do
+		local _CEntryObj = c._rmessage_message(cobj , key , i);
+		local t, map_entry_type = c._env_type(P, self._CType, "value");
+		local m = {
+			_CObj = c._rmessage_message(_CEntryObj , "value" , 0),
+			_CType = map_entry_type,
+			_Parent = self,
+		}
+		local _, key_type = c._env_type(P, self._CType, "key")
+		ret[k] = setmetatable( m , _R_meta )
+	end
+	return ret
+end
+
 function _reader:int_repeated(key)
 	local cobj = self._CObj
 	local n = c._rmessage_size(cobj , key)
@@ -177,6 +195,12 @@ _reader[128+8] = _reader[128+1]
 _reader[128+9] = _reader[128+5]
 _reader[128+10] = _reader[128+7]
 _reader[128+11] = _reader[128+7]
+_reader[128+12] = function(msg)
+	local message = _reader.message_map
+	return function(self, key)
+		return message(self, key, msg)
+	end
+end
 
 local _decode_type_meta = {}
 
@@ -217,6 +241,12 @@ local function encode_message(CObj, message_type, t)
 		local func = type[k]
 		func(CObj, k , v)
 	end
+end
+
+local function encode_message_map(CObj, message_type, key, value)
+	local type = encode_type_cache[message_type]
+	type["key"](CObj, "key", key)
+	type["value"](CObj, "value", value)
 end
 
 local _writer = {
@@ -260,6 +290,13 @@ function _writer:message_repeated(k,v, message_type)
 	end
 end
 
+function _writer:message_map(k, v, message_type)
+	for key, value in pairs(v) do
+		local submessage = c._wmessage_message(self, k)
+		encode_message_map(submessage, message_type, key, value)
+	end
+end
+
 function _writer:int_repeated(k,v)
 	for _,v in ipairs(v) do
 		c._wmessage_int(self,k,v)
@@ -300,6 +337,12 @@ _writer[128+8] = _writer[128+1]
 _writer[128+9] = _writer[128+5]
 _writer[128+10] = _writer[128+7]
 _writer[128+11] = _writer[128+7]
+_writer[128+12] = function(msg)
+	local message = _writer.message_map
+	return function(self, key, v)
+		return message(self, key, v, msg)
+	end
+end
 
 local _encode_type_meta = {}
 
