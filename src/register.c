@@ -137,26 +137,26 @@ _register_field(struct pbc_rmessage * field, struct _field * f, struct _stringpo
 	int syntax_sz;
 	const char* syntax = pbc_rmessage_string(file, "syntax", 0, &syntax_sz);
 	switch(f->type) {
-	case PTYPE_DOUBLE:
-	case PTYPE_FLOAT:
-	case PTYPE_INT64:
-	case PTYPE_SINT64:
-	case PTYPE_INT32:
-	case PTYPE_SINT32:
-	case PTYPE_UINT32:
-	case PTYPE_ENUM:
-	case PTYPE_UINT64:
-	case PTYPE_FIXED32:
-	case PTYPE_SFIXED32:
-	case PTYPE_SFIXED64:
-	case PTYPE_FIXED64:
-	case PTYPE_BOOL:
-		if (f->label == LABEL_REPEATED && syntax_sz == 6 && strncmp(syntax, "proto3", 6) == 0) {
-			f->label = LABEL_PACKED;
-		}
-		break;
-    default:
-        break;
+		case PTYPE_DOUBLE:
+		case PTYPE_FLOAT:
+		case PTYPE_INT64:
+		case PTYPE_SINT64:
+		case PTYPE_INT32:
+		case PTYPE_SINT32:
+		case PTYPE_UINT32:
+		case PTYPE_ENUM:
+		case PTYPE_UINT64:
+		case PTYPE_FIXED32:
+		case PTYPE_SFIXED32:
+		case PTYPE_SFIXED64:
+		case PTYPE_FIXED64:
+		case PTYPE_BOOL:
+			if (f->label == LABEL_REPEATED && syntax_sz == 6 && strncmp(syntax, "proto3", 6) == 0) {
+				f->label = LABEL_PACKED;
+			}
+			break;
+		default:
+			break;
     }
 	if (pbc_rmessage_size(field , "options") > 0) {
 		struct pbc_rmessage * options = pbc_rmessage_message(field, "options" , 0);
