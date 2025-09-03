@@ -762,7 +762,7 @@ decode_map_entry_cb(struct pbc_env* env, void *ud, int type, const char * type_n
 	-2: table key
 	-1:	table id
  */
-static int
+static void
 decode_cb(struct pbc_env* env, void *ud, int type, const char * type_name, union pbc_value *v, int id, const char *key) {
 	lua_State *L = (lua_State *)ud;
 	if (key == NULL) {
@@ -773,7 +773,7 @@ decode_cb(struct pbc_env* env, void *ud, int type, const char * type_name, union
 	if (type & PBC_REPEATED) {
 		if ((type & ~PBC_REPEATED) == PBC_MAP) {
 			// map
-			int n = pbc_decode_map_entry(env, type_name, &v->s, decode_map_entry_cb, ud);
+			pbc_decode_map_entry(env, type_name, &v->s, decode_map_entry_cb, ud);
 			if (n<0) {
 				return -1;
 			}

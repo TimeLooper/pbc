@@ -122,7 +122,8 @@ call_type(struct pbc_env * env, pbc_decoder pd, void * ud, struct _field *f, str
 		assert(0);
 		break;
 	}
-	return pd(env, ud, type, type_name, &v, f->id, f->name);
+	pd(env, ud, type, type_name, &v, f->id, f->name);
+	return 0;
 }
 
 static int
@@ -397,7 +398,7 @@ pbc_decode_map_entry(struct pbc_env * env, const char * type_name , struct pbc_s
 		}
 		union pbc_value v;
 		memcpy(&v, valueField->default_v, sizeof(v));
-		ret = pd(env, ud, type, type_name, &v, valueField->id, valueField->name);
+		pd(env, ud, type, type_name, &v, valueField->id, valueField->name);
 	} else {
 		if (call_type(env,pd,ud,valueField,&ctx->a[valueFieldIndex],start) != 0) {
 			_pbcC_close(_ctx);
@@ -419,7 +420,7 @@ pbc_decode_map_entry(struct pbc_env * env, const char * type_name , struct pbc_s
 		}
 		union pbc_value v;
 		memcpy(&v, valueField->default_v, sizeof(v));
-		ret = pd(env, ud, type, type_name, &v, keyField->id, keyField->name);
+		pd(env, ud, type, type_name, &v, keyField->id, keyField->name);
 	} else {
 		if (call_type(env,pd,ud,keyField,&ctx->a[keyFieldIndex],start) != 0) {
 			_pbcC_close(_ctx);
