@@ -491,6 +491,16 @@ function M.decode(typename, buffer, length)
 	end
 end
 
+function M.decode_no_delay(typename, buffer, length)
+	local ret = {}
+	local ok = c._decode_no_delay(P, decode_message_cb , ret , typename, buffer, length)
+	if ok then
+		return setmetatable(ret , default_table(typename))
+	else
+		return false , c._last_error(P)
+	end
+end
+
 local function expand(tbl)
 	local typename = rawget(tbl , 1)
 	local buffer = rawget(tbl , 2)

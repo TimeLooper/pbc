@@ -250,6 +250,12 @@ local function encode_message(CObj, message_type, t)
 	end
 end
 
+local function encode_message_map(CObj, message_type, key, value)
+	local type = encode_type_cache[message_type]
+	type["key"](CObj, "key", key)
+	type["value"](CObj, "value", value)
+end
+
 local _writer = {
 	int = c._wmessage_integer,
 	real = c._wmessage_real,
@@ -298,6 +304,13 @@ function _writer:message_repeated(k,v, message_type)
 	for _,v in ipairs(v) do
 		local submessage = c._wmessage_message(self, k)
 		encode_message(submessage, message_type, v)
+	end
+end
+
+function _writer:message_map(k, v, message_type)
+	for key, value in pairs(v) do
+		local submessage = c._wmessage_message(self, k)
+		encode_message_map(submessage, message_type, key, value)
 	end
 end
 
@@ -358,6 +371,12 @@ _writer[128+8] = function(msg) return _writer.int32_repeated end
 _writer[128+9] = _writer[128+5]
 _writer[128+10] = function(msg) return _writer.int52_repeated end
 _writer[128+11] = function(msg) return _writer.uint52_repeated end
+_writer[128+12] = function(msg)
+	local message = _writer.message_map
+	return function(self, key, v)
+		return message(self, key, v, msg)
+	end
+end
 
 local _encode_type_meta = {}
 
@@ -520,6 +539,16 @@ end
 function decode(typename, buffer, length)
 	local ret = {}
 	local ok = c._decode(P, decode_message_cb , ret , typename, buffer, length)
+	if ok then
+		return setmetatable(ret , default_table(typename))
+	else
+		return false , c._last_error(P)
+	end
+end
+
+function decode_no_delay(typename, buffer, length)
+	local ret = {}
+	local ok = c._decode_no_delay(P, decode_message_cb , ret , typename, buffer, length)
 	if ok then
 		return setmetatable(ret , default_table(typename))
 	else

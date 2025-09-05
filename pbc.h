@@ -62,6 +62,7 @@ union pbc_value {
 typedef void (*pbc_decoder)(struct pbc_env* env, void *ud, int type, const char * type_name, union pbc_value *v, int id, const char *key);
 int pbc_decode(struct pbc_env * env, const char * type_name , struct pbc_slice * slice, pbc_decoder f, void *ud);
 int pbc_decode_map_entry(struct pbc_env * env, const char * type_name , struct pbc_slice * slice, pbc_decoder f, void *ud);
+int pbc_decode_no_delay(struct pbc_env * env, const char * type_name , struct pbc_slice * slice, pbc_decoder pd, void *ud);
 
 // message api
 
