@@ -427,48 +427,4 @@ pbc_decode_map_entry(struct pbc_env * env, const char * type_name , struct pbc_s
 	return 0;
 }
 
-int
-pbc_decode_no_delay(struct pbc_env * env, const char * type_name , struct pbc_slice * slice, pbc_decoder pd, void *ud) {
-	struct _message * msg = _pbcP_get_message(env, type_name);
-	if (msg == NULL) {
-		env->lasterror = "Proto not found";
-		return -1;
-	}
-	pbc_ctx _ctx;
-	int count = _pbcC_open(_ctx,slice->buffer,slice->len);
-	if (count <= 0 && slice->len > 0) {
-		env->lasterror = "decode context error";
-		_pbcC_close(_ctx);
-		return count - 1;
-	}
-	struct context * ctx = (struct context *)_ctx;
-	uint8_t * start = (uint8_t *)slice->buffer;
-
-	int i;
-	for (i = 0; i < ctx->number; ++i) {
-		int id = ctx->a[i].wire_id >> 3;
-		struct _field * f = (struct _field *)_pbcM_ip_query(msg->id , id);
-		if (f == NULL) {
-			int err = call_unknown(env, pd, ud, id, &ctx->a[i], start);
-			if (err) {
-				_pbcC_close(_ctx);
-				return -i-1;
-			}
-		} else if (f->label == LABEL_PACKED) {
-			struct atom * a = &ctx->a[i];
-			int n = call_array(env, pd, ud, f, start + a->v.s.start, a->v.s.end - a->v.s.start);
-			if (n < 0) {
-				_pbcC_close(_ctx);
-				return -i-1;
-			}
-		} else {
-			if (call_type(env, pd, ud, f, &ctx->a[i], start) != 0) {
-				_pbcC_close(_ctx);
-				return -i-1;
-			}
-		}
-	}
-	_pbcC_close(_ctx);
-	return 0;
-}
 

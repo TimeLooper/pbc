@@ -989,7 +989,7 @@ decode_cb(struct pbc_env* env, void *ud, int type, const char * type_name, union
 			new_map(L, id , key);	// func.decode table.key table.id value key table
 			lua_insert(L, -3);
 			lua_insert(L, -2);
-			lua_settable(L, -3);
+			lua_rawset(L, -3);
 			lua_pop(L,1);
 		} else {
 			push_value(L, type & ~PBC_REPEATED, type_name, v);
@@ -1001,62 +1001,6 @@ decode_cb(struct pbc_env* env, void *ud, int type, const char * type_name, union
 		}
 	} else {
 		push_value(L, type, type_name, v);
-		lua_setfield(L, -3 , key);
-	}
-	return;
-}
-
-/*
-	-2: table key
-	-1:	table id
- */
-static void
-decode_no_delay_cb(struct pbc_env* env, void *ud, int type, const char * type_name, union pbc_value *v, int id, const char *key) {
-	lua_State *L = (lua_State *)ud;
-	if (key == NULL) {
-		// undefined field
-		return;
-	}
-
-	if (type & PBC_REPEATED) {
-		int rawType = type & ~PBC_REPEATED;
-		if (rawType == PBC_MAP) {
-			// map
-			lua_newtable(L); // table.key
-			lua_newtable(L); // table.id
-			pbc_decode_no_delay(env, type_name, &v->s, decode_no_delay_cb, ud);
-			lua_pop(L, 1);
-			lua_getfield(L, -1, "value");
-			lua_getfield(L, -2, "key"); // table.key table.id table.key value key
-			lua_replace(L, -3); // table.key table.id key value
-			new_map(L, id , key);	// table.key table.id key value table
-			lua_insert(L, -3);
-			lua_settable(L, -3);
-			lua_pop(L, 1);
-		} else {
-			if (rawType == PBC_MESSAGE) {
-				lua_newtable(L); // table.key
-				lua_newtable(L); // table.id
-				pbc_decode_no_delay(env, type_name, &v->s, decode_no_delay_cb, ud);
-				lua_pop(L, 1);
-			} else {
-				push_value(L, rawType, type_name, v);
-			}
-			new_array(L, id, key);	// func.decode table.key table.id value array
-			int n = lua_rawlen(L,-1);
-			lua_insert(L, -2);	// func.decode table.key table.id array value
-			lua_rawseti(L, -2 , n+1);	// func.decode table.key table.id array
-			lua_pop(L,1);
-		}
-	} else {
-		if (type == PBC_MESSAGE) {
-			lua_newtable(L); // table.key
-			lua_newtable(L); // table.id
-			pbc_decode_no_delay(env, type_name, &v->s, decode_no_delay_cb, ud);
-			lua_pop(L, 1);
-		} else {
-			push_value(L, type, type_name, v);
-		}
 		lua_setfield(L, -3 , key);
 	}
 	return;
@@ -1097,44 +1041,6 @@ _decode(lua_State *L) {
 		lua_pushboolean(L,0);
 	} else {
 		lua_pushboolean(L,1);
-	}
-	return 1;
-}
-
-/*
-	:1 lightuserdata env
-	:2 function decode_message
-	:3 table target
-	:4 string type
-	:5 string data
-	:6 lightuserdata pointer
-	:7 integer len
-
-	table
- */
-static int
-_decode_no_delay(lua_State *L) {
-	struct pbc_env * env = (struct pbc_env *)checkuserdata(L,1);
-	luaL_checktype(L, 2, LUA_TFUNCTION);
-	luaL_checktype(L, 3, LUA_TTABLE);
-	const char * type = luaL_checkstring(L,4);
-	struct pbc_slice slice;
-	if (lua_type(L,5) == LUA_TSTRING) {
-		size_t len;
-		slice.buffer = (void *)luaL_checklstring(L,5,&len);
-		slice.len = (int)len;
-	} else {
-		slice.buffer = checkuserdata(L,5);
-		slice.len = luaL_checkinteger(L,6);
-	}
-	lua_pushvalue(L, 3);
-	lua_newtable(L);
-
-	int n = pbc_decode_no_delay(env, type, &slice, decode_no_delay_cb, L);
-	if (n<0) {
-		lua_pushboolean(L, 0);
-	} else {
-		lua_pushboolean(L, 1);
 	}
 	return 1;
 }
@@ -1251,8 +1157,7 @@ luaopen_protobuf_c(lua_State *L) {
 		{"_pattern_unpack", _pattern_unpack },
 		{"_pattern_pack", _pattern_pack },
 		{"_last_error", _last_error },
-		{"_decode", _decode_no_delay },
-		{"_decode_no_delay", _decode_no_delay },
+		{"_decode", _decode },
 		{"_gc", _gc },
 		{"_add_pattern", _add_pattern },
 		{"_add_rmessage", _add_rmessage },

@@ -118,6 +118,24 @@ function _reader:message_repeated(key, message_type)
 	return ret
 end
 
+function _reader:message_map(key, message_type)
+	local cobj = self._CObj
+	local n = c._rmessage_size(cobj , key)
+	local ret = {}
+	for i=0,n-1 do
+		local _CEntryObj = c._rmessage_message(cobj , key , i);
+		local t, map_entry_type = c._env_type(P, self._CType, "value");
+		local m = {
+			_CObj = c._rmessage_message(_CEntryObj , "value" , 0),
+			_CType = map_entry_type,
+			_Parent = self,
+		}
+		local _, key_type = c._env_type(P, self._CType, "key")
+		ret[k] = setmetatable( m , _R_meta )
+	end
+	return ret
+end
+
 function _reader:int_repeated(key)
 	local cobj = self._CObj
 	local n = c._rmessage_size(cobj , key)
@@ -178,6 +196,12 @@ _reader[128+8] = _reader[128+1]
 _reader[128+9] = _reader[128+5]
 _reader[128+10] = _reader[128+7]
 _reader[128+11] = _reader[128+7]
+_reader[128+12] = function(msg)
+	local message = _reader.message_map
+	return function(self, key)
+		return message(self, key, msg)
+	end
+end
 
 local _decode_type_meta = {}
 
@@ -484,16 +508,6 @@ end
 function M.decode(typename, buffer, length)
 	local ret = {}
 	local ok = c._decode(P, decode_message_cb , ret , typename, buffer, length)
-	if ok then
-		return setmetatable(ret , default_table(typename))
-	else
-		return false , c._last_error(P)
-	end
-end
-
-function M.decode_no_delay(typename, buffer, length)
-	local ret = {}
-	local ok = c._decode_no_delay(P, decode_message_cb , ret , typename, buffer, length)
 	if ok then
 		return setmetatable(ret , default_table(typename))
 	else
