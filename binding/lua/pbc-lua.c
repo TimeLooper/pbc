@@ -986,7 +986,7 @@ decode_cb(struct pbc_env* env, void *ud, int type, const char * type_name, union
 			if (n < 0) {
 				return;
 			}
-			new_map(L, id , key);	// func.decode table.key table.id key value table
+			new_map(L, id , key);	// func.decode table.key table.id value key table
 			lua_insert(L, -3);
 			lua_insert(L, -2);
 			lua_rawset(L, -3);
