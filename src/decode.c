@@ -365,64 +365,36 @@ pbc_decode_map_entry(struct pbc_env * env, const char * type_name , struct pbc_s
 	uint8_t * start = (uint8_t *)slice->buffer;
 
 	int i;
-	int keyFieldIndex = -1;
-	int valueFieldIndex = -1;
+	int fieldIndices[2] = {-1, -1};
 	for (i=0;i<ctx->number;i++) {
 		int id = ctx->a[i].wire_id >> 3;
-		struct _field * f = (struct _field *)_pbcM_ip_query(msg->id , id);
-		if (strcmp(f->name, "key") == 0) {
-			keyFieldIndex = i;
-		}
-		if (strcmp(f->name, "value") == 0) {
-			valueFieldIndex = i;
-		}
+		struct _field * f = (struct _field *)_pbcM_ip_query(msg->id, id);
+		fieldIndices[f->id - 1] = i;
 	}
 
-	struct _field* keyField =  _pbcM_sp_query(msg->name, "key");
-	struct _field* valueField = _pbcM_sp_query(msg->name, "value");
-
-	if (keyField == NULL || valueField == NULL) {
-		env->lasterror = "map field not found";
-		_pbcC_close(_ctx);
-		return -1;
-	}
-
-	if (valueFieldIndex < 0) {
-		// default value
-		const char* type_name = NULL;
-		int type = _pbcP_type(valueField, &type_name);
-		assert(type != 0);
-		if (type_name == NULL) {
-			type_name = TYPENAME[type & ~PBC_REPEATED];
-		}
-		union pbc_value v;
-		memcpy(&v, valueField->default_v, sizeof(v));
-		pd(env, ud, type, type_name, &v, valueField->id, valueField->name);
-	} else {
-		if (call_type(env,pd,ud,valueField,&ctx->a[valueFieldIndex],start) != 0) {
-			_pbcC_close(_ctx);
-			return -i-1;
+	for (int i = 1; i >= 0; --i) {
+		int fieldIndex = fieldIndices[i];
+		if (fieldIndex < 0) {
+			// default value
+			struct _field* f = (struct _field *)_pbcM_ip_query(msg->id, i + 1);
+			const char* type_name = NULL;
+			int type = _pbcP_type(f, &type_name);
+			assert(type != 0);
+			if (type_name == NULL) {
+				type_name = TYPENAME[type & ~PBC_REPEATED];
+			}
+			union pbc_value v;
+			memcpy(&v, f->default_v, sizeof(v));
+			pd(env, ud, type, type_name, &v, f->id, f->name);	
+		} else {
+			int id = ctx->a[fieldIndex].wire_id >> 3;
+			struct _field * f = (struct _field *)_pbcM_ip_query(msg->id, id);
+			if (call_type(env, pd, ud, f, &ctx->a[fieldIndex], start) != 0) {
+				_pbcC_close(_ctx);
+				return -i-1;
+			}
 		}
 	}
-
-	if (keyFieldIndex < 0) {
-		// default value
-		const char* type_name = NULL;
-		int type = _pbcP_type(keyField, &type_name);
-		assert(type != 0);
-		if (type_name == NULL) {
-			type_name = TYPENAME[type & ~PBC_REPEATED];
-		}
-		union pbc_value v;
-		memcpy(&v, valueField->default_v, sizeof(v));
-		pd(env, ud, type, type_name, &v, keyField->id, keyField->name);
-	} else {
-		if (call_type(env,pd,ud,keyField,&ctx->a[keyFieldIndex],start) != 0) {
-			_pbcC_close(_ctx);
-			return -i-1;
-		}
-	}
-
 	_pbcC_close(_ctx);
 	return 0;
 }

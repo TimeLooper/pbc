@@ -780,7 +780,7 @@ decode_cb(struct pbc_env* env, void *ud, int type, const char * type_name, union
 			new_map(L, id , key);	// func.decode table.key table.id value key table
 			lua_insert(L, -3);
 			lua_insert(L, -2);
-			lua_settable(L, -3);
+			lua_rawset(L, -3);
 			lua_pop(L,1);
 		} else {
 			push_value(L, type & ~PBC_REPEATED, type_name, v);
@@ -791,8 +791,9 @@ decode_cb(struct pbc_env* env, void *ud, int type, const char * type_name, union
 			lua_pop(L,1);
 		}
 	} else {
+		lua_pushstring(L, key);
 		push_value(L, type, type_name, v);
-		lua_setfield(L, -3 , key);
+		lua_rawset(L, -4);
 	}
 	return;
 }

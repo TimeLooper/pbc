@@ -215,7 +215,7 @@ _init_map_entry_message(struct pbc_rmessage * message_type, struct _message * m,
 		return;
 	}
 	struct _field* key = _pbcM_sp_query(m->name, "key");
-	if (!key) {
+	if (!key || key->id != 1) {
 		return;
 	}
 	int key_state = 0;
@@ -243,7 +243,7 @@ _init_map_entry_message(struct pbc_rmessage * message_type, struct _message * m,
 		return;
 	}
 	struct _field* value = _pbcM_sp_query(m->name, "value");
-	if (!value) {
+	if (!value || value->id != 2) {
 		return;
 	}
 	struct pbc_rmessage* options = pbc_rmessage_message(message_type, "options", 0);
