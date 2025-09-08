@@ -791,9 +791,8 @@ decode_cb(struct pbc_env* env, void *ud, int type, const char * type_name, union
 			lua_pop(L,1);
 		}
 	} else {
-		lua_pushstring(L, key);
 		push_value(L, type, type_name, v);
-		lua_rawset(L, -4);
+		lua_setfield(L, -3, key);
 	}
 	return;
 }
