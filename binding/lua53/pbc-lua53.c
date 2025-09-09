@@ -746,15 +746,15 @@ push_value(lua_State *L, int type, const char * type_name, union pbc_value *v) {
 	}
 }
 
-static int
+static void
 decode_map_entry_cb(struct pbc_env* env, void *ud, int type, const char * type_name, union pbc_value *v, int id, const char *key) {
 	lua_State *L = (lua_State *)ud;
 	if (key == NULL) {
 		// undefined field
-		return 0;
+		return;
 	}
 	push_value(L, type, type_name, v);
-	return 0;
+	return;
 }
 
 /*
