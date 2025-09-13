@@ -1008,9 +1008,8 @@ decode_cb(void *ud, int type, const char * type_name, union pbc_value *v, int id
 			lua_pop(L,1);
 		}
 	} else {
-		lua_pushstring(L, key);
 		push_value(L, type, type_name, v);
-		lua_rawset(L, -4);
+		lua_setfield(L, -3, key);
 	}
 	return;
 }

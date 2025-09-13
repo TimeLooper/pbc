@@ -3,7 +3,9 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#ifndef _MSC_VER
 #include <stdbool.h>
+#endif
 
 #define PBC_ARRAY_CAP 64
 

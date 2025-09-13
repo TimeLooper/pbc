@@ -14,6 +14,9 @@ aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src LIBSRCS)
 set(LIBNAME "pbc")
 
 add_library(${LIBNAME} STATIC ${LIBSRCS})
+if(WIN32)
+set_source_files_properties(${LIBSRCS} PROPERTIES LANGUAGE CXX)
+endif(WIN32)
 
 ### install header
 install(FILES "${CMAKE_CURRENT_LIST_DIR}/pbc.h" DESTINATION "include")
