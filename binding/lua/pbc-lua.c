@@ -955,9 +955,15 @@ push_value(lua_State *L, int type, const char * type_name, union pbc_value *v) {
 	}
 }
 
+struct _decode_cb_ud {
+	lua_State *L;
+	struct pbc_env* env;
+};
+
 static void
-decode_map_entry_cb(struct pbc_env* env, void *ud, int type, const char * type_name, union pbc_value *v, int id, const char *key) {
-	lua_State *L = (lua_State *)ud;
+decode_map_entry_cb(void *ud, int type, const char * type_name, union pbc_value *v, int id, const char *key) {
+	struct _decode_cb_ud *data = (struct _decode_cb_ud *)ud;
+	lua_State *L = data->L;
 	if (key == NULL) {
 		// undefined field
 		return;
@@ -972,8 +978,10 @@ decode_map_entry_cb(struct pbc_env* env, void *ud, int type, const char * type_n
 	-1:	table id
  */
 static void
-decode_cb(struct pbc_env* env, void *ud, int type, const char * type_name, union pbc_value *v, int id, const char *key) {
-	lua_State *L = (lua_State *)ud;
+decode_cb(void *ud, int type, const char * type_name, union pbc_value *v, int id, const char *key) {
+	struct _decode_cb_ud *data = (struct _decode_cb_ud *)ud;
+	lua_State *L = data->L;
+	struct pbc_env* env = data->env;
 	if (key == NULL) {
 		// undefined field
 		return;
@@ -1037,7 +1045,8 @@ _decode(lua_State *L) {
 	lua_pushvalue(L, 3);
 	lua_newtable(L);
 
-	int n = pbc_decode(env, type, &slice, decode_cb, L);
+	struct _decode_cb_ud ud = {L, env};
+	int n = pbc_decode(env, type, &slice, decode_cb, &ud);
 	if (n<0) {
 		lua_pushboolean(L,0);
 	} else {
