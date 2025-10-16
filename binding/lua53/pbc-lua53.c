@@ -751,7 +751,7 @@ struct _decode_cb_ud {
 	struct pbc_env* env;
 };
 
-static int
+static void
 decode_map_entry_cb(void *ud, int type, const char * type_name, union pbc_value *v, int id, const char *key) {
 	struct _decode_cb_ud *data = (struct _decode_cb_ud *)ud;
 	lua_State *L = data->L;
