@@ -114,9 +114,6 @@ set_default(struct _field *f, struct field_t *input) {
 	case PTYPE_STRING:
 	case PTYPE_ENUM:
 		f->default_v->m = input->default_string;
-		if (f->default_v->s.len == 1 && f->default_v->s.str[0] == '\0') {
-			f->default_v->s.len = 0;
-		}
 		break;
 	default:
 		f->default_v->integer.low = input->default_integer;
